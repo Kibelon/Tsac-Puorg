@@ -20,20 +20,15 @@ class Tracker(object):
 
     def get_peers(self, torrent_hash, peer):
         peerResult = []
-        if len(self.peers[torrent_hash].keys()) > 4:
-            num = self.peers[torrent_hash].keys()
-            num.remove(peer)
-            peerResult = random.sample(num, 3)
-        else:
-            peerResult = self.peers[torrent_hash].keys()
-            peerResult.remove(peer)
+        peerResult = self.peers[torrent_hash].keys()
+        peerResult.remove(peer)
         return peerResult
 
     def announce(self, torrent_hash, peer):
         if not(self.peers.has_key(torrent_hash)):
             self.peers[torrent_hash] = {}
         self.peers[torrent_hash][peer] = 1
-
+        
     def update(self):
         for swamp in self.peers.keys():
             for peer in self.peers[swamp].keys():
