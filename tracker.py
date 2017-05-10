@@ -28,7 +28,7 @@ class Tracker(object):
         if not(self.peers.has_key(torrent_hash)):
             self.peers[torrent_hash] = {}
         self.peers[torrent_hash][peer] = 1
-        
+
     def update(self):
         for swamp in self.peers.keys():
             for peer in self.peers[swamp].keys():

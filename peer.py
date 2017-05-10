@@ -1,10 +1,10 @@
 # Peer pyTorrent
 # Jesus Gracia & Miquel Sabate
 # GEI URV 2016/2017
-# Version 2.1
-# Last-update 15.03.17
+# Version 2.2
+# Last-update 10.05.17
 
-from pyactor.context import set_context, create_host, shutdown, serve_forever, interval
+from pyactor.context import set_context, create_host, shutdown, serve_forever, interval, sleep
 from random import randint
 import random
 import sys
@@ -12,27 +12,26 @@ import sys
 class Peer(object):
     _tell = ['get_peers', 'announce', 'init', 'multicast','check_buffer','receive']
     _ask = ['get_counter']
-    _ref = ['get_peers']
+    _ref = ['get_peers', 'get_counter']
 
     group = ""
     tracker=""
     sequencer=""
     neighbors=""
     msg=""
-    counter=0
+    #counter=0
     type_of_peer=""
-    buffer =""
+    buffer =[]
     internal_count=0
 
 
     def init(self):
         if type_of_peer != "sequencer":
             self.tracker = host.lookup_url('http://127.0.0.1:1277/tracker', 'Tracker', 'tracker')
-            self.sequencer = host.lookup_url('http://127.0.0.1:1500/peer', 'Peer', 'peer')
-            self.interval1 = interval(self.host, 5, self.proxy, "announce")
-            # peer will send an announce every 5 seconds to tracker
-            self.interval2 = interval(self.host, 2, self.proxy, "get_peers")
-            # peer will do the method get_peers every 2 seconds
+            self.sequencer = host.lookup_url('http://127.0.0.1:1500/sequencer', 'Sequencer', 'sequencer')
+            self.announce()
+            sleep(2) #synchronize peers
+            self.get_peers()
             if type_of_peer == "sec":
                 self.interval3 = interval(self.host, 2, self.proxy, "check_buffer")
                 self.interval4 = interval(self.host, 4, self.proxy, "multicast")
@@ -40,29 +39,30 @@ class Peer(object):
                 self.interval3 = interval(self.host, 2, self.proxy, "check_buffer")
                 #self.interval4 = interval(self.host, 4, self.proxy, "pull")
 
-    def get_counter(self):
-        count=self.counter
-        self.counter += 1
-        return count
+    #def get_counter(self):
+    #    count=counter
+    #    counter += 1
+    #    return count
 
     def multicast(self):
         count = self.sequencer.get_counter()
         for peer in self.neighbors:
             peer.receive ([count, msg])
+        self.receive ([count, msg])
 
     def receive(self, msg):
-        if msg[0] == internal_count:
+        if msg[0] == self.internal_count:
             self.process_msg(msg[1])
-            internal_count += 1
+            self.internal_count += 1
         else:
-            buffer.append(msg)
-   
+            self.buffer.append(msg)
+
     def check_buffer(self):
         for tup in self.buffer:
-            if tup[0] == internal_count:
+            if tup[0] == self.internal_count:
                 self.process_msg(tup[1])
                 self.buffer.remove(tup)
-                internal_count += 1
+                self.internal_count += 1
 
     def process_msg(self,msg):
         print msg
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         host = create_host('http://127.0.0.1:' + str(1500))
         print 'peer1500'
         msg = 'peer1500'
-        peer = host.spawn('peer' + str(1500), Peer)
+        peer = host.spawn('sequencer' + str(1500), Peer)
 
     if len(sys.argv) > 3:
         print "Error in the argument. Use: python peer.py type_of_peer group"
