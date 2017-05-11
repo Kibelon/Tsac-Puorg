@@ -12,14 +12,14 @@ import sys
 class Peer(object):
     _tell = ['get_peers', 'announce', 'init', 'multicast','check_buffer','receive']
     _ask = ['get_counter']
-    _ref = ['get_peers', 'get_counter']
+    _ref = ['get_peers']
 
     group = ""
     tracker=""
     sequencer=""
     neighbors=""
     msg=""
-    #counter=0
+    counter=0
     type_of_peer=""
     buffer =[]
     internal_count=0
@@ -28,9 +28,9 @@ class Peer(object):
     def init(self):
         if type_of_peer != "sequencer":
             self.tracker = host.lookup_url('http://127.0.0.1:1277/tracker', 'Tracker', 'tracker')
-            self.sequencer = host.lookup_url('http://127.0.0.1:1500/sequencer', 'Sequencer', 'sequencer')
+            self.sequencer = host.lookup_url('http://127.0.0.1:1500/peer1500', 'Peer', 'peer')
             self.announce()
-            sleep(2) #synchronize peers
+            sleep(2) #wait for all peers to start
             self.get_peers()
             if type_of_peer == "sec":
                 self.interval3 = interval(self.host, 2, self.proxy, "check_buffer")
@@ -38,11 +38,13 @@ class Peer(object):
             elif type_of_peer == "lamp":
                 self.interval3 = interval(self.host, 2, self.proxy, "check_buffer")
                 #self.interval4 = interval(self.host, 4, self.proxy, "pull")
+        else:
+            self.counter = 0
 
-    #def get_counter(self):
-    #    count=counter
-    #    counter += 1
-    #    return count
+    def get_counter(self):
+        count=self.counter
+        self.counter += 1
+        return count
 
     def multicast(self):
         count = self.sequencer.get_counter()
@@ -82,10 +84,11 @@ if __name__ == "__main__":
         msg = 'peer' + str(rand)
         peer = host.spawn('peer' + str(rand), Peer)
     else:
-        host = create_host('http://127.0.0.1:' + str(1500))
-        print 'peer1500'
-        msg = 'peer1500'
-        peer = host.spawn('sequencer' + str(1500), Peer)
+        rand = 1500
+        host = create_host('http://127.0.0.1:' + str(rand))
+        print 'peer' + str(rand)
+        msg = 'peer' + str(rand)
+        peer = host.spawn('peer' + str(rand), Peer)
 
     if len(sys.argv) > 3:
         print "Error in the argument. Use: python peer.py type_of_peer group"
