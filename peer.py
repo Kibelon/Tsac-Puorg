@@ -8,11 +8,13 @@ from pyactor.context import set_context, create_host, shutdown, serve_forever, i
 from random import randint
 import random
 import sys
+from pyactor.exceptions import TimeoutError
 
 class Peer(object):
-    _tell = ['get_peers', 'announce', 'init', 'multicast','check_buffer','receive']
+    _tell = ['get_peers', 'announce', 'init', 'multicast','check_buffer','receive','fight_for_power',
+    'lider_chosen', 'lider_proposal', 'lider_aceptance']
     _ask = ['get_counter']
-    _ref = ['get_peers']
+    _ref = ['get_peers','lider_chosen', 'lider_proposal']
 
     group = ""
     tracker=""
@@ -23,12 +25,20 @@ class Peer(object):
     type_of_peer=""
     buffer =[]
     internal_count=0
-
+    my_number = 0 #used for the bully algorithm
+    victory_count=0
+    im_sequencer = False
 
     def init(self):
         if type_of_peer != "sequencer":
+            self.my_number = randint(0, 1999)
+            self.counter = 0
+            self.internal_count = 0
+            self.victory_count = 0
+            self.im_sequencer = False
             self.tracker = host.lookup_url('http://127.0.0.1:1277/tracker', 'Tracker', 'tracker')
-            self.sequencer = host.lookup_url('http://127.0.0.1:1500/peer1500', 'Peer', 'peer')
+            self.sequencer = ""
+            #self.sequencer = host.lookup_url('http://127.0.0.1:1500/peer1500', 'Peer', 'peer')
             self.announce()
             sleep(2) #wait for all peers to start
             self.get_peers()
@@ -45,12 +55,67 @@ class Peer(object):
         count=self.counter
         self.counter += 1
         return count
+    
+    def lider_chosen(self, lider):
+        if self.sequencer != "":
+            self.neighbors.remove(self.sequencer)
+        self.sequencer = lider
+        self.proposed_lider = ""
+        self.counter = 0
+        self.internal_count = 0
+        self.buffer =[]
+        print "we have anew lider!"
+        self.interval4 = interval(self.host, 4, self.proxy, "multicast") #restarting messages
+    
+    def lider_aceptance(self, result):
+        print "lider opnion recived"
+        if result == True:
+            self.victory_count += 1
+            if self.victory_count == len(self.neighbors):
+                print "I'm the king!!!"
+                for peer in self.neighbors:
+                    peer.lider_chosen(self.proxy)
+                self.lider_chosen(self.proxy)
+                self.im_sequencer = True
+        else:
+            print "I've lost, retreet!"
+
+    def lider_proposal(self, lider, value):
+        print "lider opnion recived"
+        if value <= self.my_number:
+            lider.lider_aceptance(True)
+        else:
+            lider.lider_aceptance(False)
+
+    def fight_for_power(self):
+        im_strongest = True
+        print "showing off my power: "
+        for peer in self.neighbors:
+            peer.lider_proposal(self.proxy ,self.my_number)
+            
 
     def multicast(self):
-        count = self.sequencer.get_counter()
-        for peer in self.neighbors:
-            peer.receive ([count, msg])
-        self.receive ([count, msg])
+        if self.sequencer != "":
+            if self.im_sequencer == True:
+                count = self.get_counter()
+                for peer in self.neighbors:
+                    peer.receive ([count, msg])
+                self.receive ([count, msg])
+            else:
+                try:
+                    count = self.sequencer.get_counter()
+                except TimeoutError, e:
+                    print "error! Starting lider election!!"
+                    self.interval4.set()#stops interval so is not called while deciding new lider
+                    self.fight_for_power()
+                for peer in self.neighbors:
+                    peer.receive ([count, msg])
+                self.receive ([count, msg])
+        else:
+            print "No sequencer! Starting lider election!!"
+            self.interval4.set()#stops interval so is not called while deciding new lider
+            self.fight_for_power()
+
 
     def receive(self, msg):
         if msg[0] == self.internal_count:
