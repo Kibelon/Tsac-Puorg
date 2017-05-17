@@ -24,6 +24,7 @@ class Peer(object):
     counter=0
     type_of_peer=""
     buffer =[]
+    ack_buffer = []
     internal_count=0
     my_number=0 #used for the bully algorithm
     victory_count=0
@@ -132,6 +133,15 @@ class Peer(object):
                 self.internal_count += 1
 
     def check_bufferLamp(self):
+        #checking ack's
+        for ack in self.ack_buffer:
+            for tup in self.buffer:
+                if (tup[0][0] == ack[0] and tup[0][2] == ack[1]):
+                    tup[1] += 1
+                    print "ACK"
+                    break
+
+        #checking messages
         if len(self.buffer) > 0:
             if min(self.buffer)[1] == len(self.neighbors):
                 self.process_msg(min(self.buffer)[0][1])
@@ -139,12 +149,7 @@ class Peer(object):
             print min(self.buffer)
 
     def ack(self, msg_ack):
-        print msg_ack
-        for tup in self.buffer:
-            if (tup[0][0] == msg_ack[0] and tup[0][2] == msg_ack[1]):
-                tup[1] += 1
-                print "ACK"
-                break
+        self.ack_buffer.append(msg_ack)
 
     def sendLamp(self):
         for peer in self.neighbors:
