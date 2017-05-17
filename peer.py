@@ -48,7 +48,7 @@ class Peer(object):
                 self.interval4 = interval(self.host, 4, self.proxy, "multicast")
             elif type_of_peer == "lamp":
                 self.interval3 = interval(self.host, 2, self.proxy, "check_bufferLamp")
-                self.interval4 = interval(self.host, 5+randint(5,10), self.proxy, "sendLamp")
+                self.interval4 = interval(self.host, 4, self.proxy, "sendLamp")
         else:
             self.counter = 0
 
@@ -138,15 +138,14 @@ class Peer(object):
             for tup in self.buffer:
                 if (tup[0][0] == ack[0] and tup[0][2] == ack[1]):
                     tup[1] += 1
-                    print "ACK"
                     break
+            self.ack_buffer.remove(ack)
 
         #checking messages
         if len(self.buffer) > 0:
             if min(self.buffer)[1] == len(self.neighbors):
                 self.process_msg(min(self.buffer)[0][1])
                 self.buffer.remove(min(self.buffer))
-            print min(self.buffer)
 
     def ack(self, msg_ack):
         self.ack_buffer.append(msg_ack)
