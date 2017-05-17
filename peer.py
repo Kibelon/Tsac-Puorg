@@ -1,8 +1,8 @@
 # Peer pyTorrent
 # Jesus Gracia & Miquel Sabate
 # GEI URV 2016/2017
-# Version 2.2
-# Last-update 10.05.17
+# Version 2.3
+# Last-update 17.05.17
 
 from pyactor.context import set_context, create_host, shutdown, serve_forever, interval, sleep
 from random import randint
@@ -12,7 +12,7 @@ from pyactor.exceptions import TimeoutError
 
 class Peer(object):
     _tell = ['get_peers', 'announce', 'init', 'multicast','check_buffer','receive','fight_for_power',
-    'lider_chosen', 'lider_proposal', 'lider_aceptance']
+    'lider_chosen', 'lider_proposal', 'lider_aceptance', 'sendLamp', 'recLamp', 'check_bufferLamp', 'ack']
     _ask = ['get_counter']
     _ref = ['get_peers','lider_chosen', 'lider_proposal']
 
@@ -25,14 +25,14 @@ class Peer(object):
     type_of_peer=""
     buffer =[]
     internal_count=0
-    my_number = 0 #used for the bully algorithm
+    my_number=0 #used for the bully algorithm
     victory_count=0
     im_sequencer = False
 
-    def init(self):
+    def init(self, num):
         if type_of_peer != "sequencer":
-            self.my_number = randint(0, 1999)
             self.counter = 0
+            self.my_number = num
             self.internal_count = 0
             self.victory_count = 0
             self.im_sequencer = False
@@ -46,8 +46,8 @@ class Peer(object):
                 self.interval3 = interval(self.host, 2, self.proxy, "check_buffer")
                 self.interval4 = interval(self.host, 4, self.proxy, "multicast")
             elif type_of_peer == "lamp":
-                self.interval3 = interval(self.host, 2, self.proxy, "check_buffer")
-                #self.interval4 = interval(self.host, 4, self.proxy, "pull")
+                self.interval3 = interval(self.host, 2, self.proxy, "check_bufferLamp")
+                self.interval4 = interval(self.host, 5+randint(5,10), self.proxy, "sendLamp")
         else:
             self.counter = 0
 
@@ -55,7 +55,7 @@ class Peer(object):
         count=self.counter
         self.counter += 1
         return count
-    
+
     def lider_chosen(self, lider):
         if self.sequencer != "":
             self.neighbors.remove(self.sequencer)
@@ -66,7 +66,7 @@ class Peer(object):
         self.buffer =[]
         print "we have anew lider!"
         self.interval4 = interval(self.host, 4, self.proxy, "multicast") #restarting messages
-    
+
     def lider_aceptance(self, result):
         print "lider opnion recived"
         if result == True:
@@ -92,7 +92,7 @@ class Peer(object):
         print "showing off my power: "
         for peer in self.neighbors:
             peer.lider_proposal(self.proxy ,self.my_number)
-            
+
 
     def multicast(self):
         if self.sequencer != "":
@@ -113,7 +113,7 @@ class Peer(object):
                 self.receive ([count, msg])
         else:
             print "No sequencer! Starting lider election!!"
-            self.interval4.set()#stops interval so is not called while deciding new lider
+            self.interval4.set() #stops interval so is not called while deciding new lider
             self.fight_for_power()
 
 
@@ -131,6 +131,36 @@ class Peer(object):
                 self.buffer.remove(tup)
                 self.internal_count += 1
 
+    def check_bufferLamp(self):
+        if len(self.buffer) > 0:
+            if min(self.buffer)[1] == len(self.neighbors):
+                self.process_msg(min(self.buffer)[0][1])
+                self.buffer.remove(min(self.buffer))
+            print min(self.buffer)
+
+    def ack(self, msg_ack):
+        print msg_ack
+        for tup in self.buffer:
+            if (tup[0][0] == msg_ack[0] and tup[0][2] == msg_ack[1]):
+                tup[1] += 1
+                print "ACK"
+                break
+
+    def sendLamp(self):
+        for peer in self.neighbors:
+            peer.recLamp([self.counter, msg, self.my_number])
+        self.recLamp([self.counter, msg, self.my_number])
+        #self.counter += 1
+
+    def recLamp(self, data):
+        if data[0] > self.counter:
+            self.counter = data[0]
+        elif data[0] == self.counter:
+            self.counter += 1
+        for peer in self.neighbors:
+            peer.ack([data[0], data[2]])
+        self.buffer.append([data, 0])
+
     def process_msg(self,msg):
         print msg
 
@@ -142,6 +172,7 @@ class Peer(object):
 
 if __name__ == "__main__":
     set_context()
+    rand=0
     if str(sys.argv[1]) != "sequencer":
         rand = randint(1501, 1999)
         host = create_host('http://127.0.0.1:' + str(rand))
@@ -168,6 +199,6 @@ if __name__ == "__main__":
     if len(sys.argv) == 3:
         type_of_peer = str(sys.argv[1])
         group = str(sys.argv[2])
-    peer.init()
+    peer.init(rand)
 
     serve_forever()
