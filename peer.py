@@ -62,15 +62,13 @@ class Peer(object):
             self.neighbors.remove(self.sequencer)
         self.sequencer = lider
         self.proposed_lider = ""
-        self.counter = 0
-        self.internal_count = 0
         self.buffer =[]
         print "we have anew lider!"
         self.interval4 = interval(self.host, 4, self.proxy, "multicast") #restarting messages
 
     def lider_aceptance(self, result):
         print "lider opnion recived"
-        if result == True:
+        if result[0] == True:
             self.victory_count += 1
             if self.victory_count == len(self.neighbors):
                 print "I'm the king!!!"
@@ -80,13 +78,17 @@ class Peer(object):
                 self.im_sequencer = True
         else:
             print "I've lost, retreet!"
+        #updatig counter to the higest value
+        if result[1] > self.counter:
+            self.counter = result[1]
+
 
     def lider_proposal(self, lider, value):
         print "lider opnion recived"
         if value <= self.my_number:
-            lider.lider_aceptance(True)
+            lider.lider_aceptance([True, self.internal_count])
         else:
-            lider.lider_aceptance(False)
+            lider.lider_aceptance([False, self.internal_count])
 
     def fight_for_power(self):
         im_strongest = True
