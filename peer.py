@@ -29,6 +29,8 @@ class Peer(object):
     my_number=0 #used for the bully algorithm
     victory_count=0
     im_sequencer = False
+    test_mode = False
+    monitor = ""
 
     def init(self, num):
         if type_of_peer != "sequencer":
@@ -41,6 +43,8 @@ class Peer(object):
             self.sequencer = ""
             #self.sequencer = host.lookup_url('http://127.0.0.1:1500/peer1500', 'Peer', 'peer')
             self.announce()
+            if test_mode == True:
+                self.monitor = host.lookup_url('http://127.0.0.1:1278/monitor', 'Monitor', 'monitor')
             sleep(2) #wait for all peers to start
             self.get_peers()
             if type_of_peer == "sec":
@@ -111,6 +115,7 @@ class Peer(object):
                     print "error! Starting lider election!!"
                     self.interval4.set()#stops interval so is not called while deciding new lider
                     self.fight_for_power()
+                sleep(randint(0, 4)) #wait for all peers to start
                 for peer in self.neighbors:
                     peer.receive ([count, msg])
                 self.receive ([count, msg])
@@ -169,6 +174,8 @@ class Peer(object):
 
     def process_msg(self,msg):
         print msg
+        if test_mode == True:
+            self.monitor.messages_in(msg, self.my_number)
 
     def announce(self):
         self.tracker.announce(self.group, self.proxy)
@@ -192,7 +199,7 @@ if __name__ == "__main__":
         msg = 'peer' + str(rand)
         peer = host.spawn('peer' + str(rand), Peer)
 
-    if len(sys.argv) > 3:
+    if len(sys.argv) > 4:
         print "Error in the argument. Use: python peer.py type_of_peer group"
         shutdown()
         exit()
@@ -205,6 +212,14 @@ if __name__ == "__main__":
     if len(sys.argv) == 3:
         type_of_peer = str(sys.argv[1])
         group = str(sys.argv[2])
+    if len(sys.argv) == 4:
+        type_of_peer = str(sys.argv[1])
+        group = str(sys.argv[2])
+        if str(sys.argv[2]) == "t":
+            test_mode = True
+        else:
+            test_mode = False
+
     peer.init(rand)
 
     serve_forever()
