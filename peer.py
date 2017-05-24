@@ -29,7 +29,7 @@ class Peer(object):
     my_number=0 #used for the bully algorithm
     victory_count=0
     im_sequencer = False
-    test_mode = False
+    test = False
     monitor = ""
 
     def init(self, num):
@@ -44,7 +44,10 @@ class Peer(object):
             #self.sequencer = host.lookup_url('http://127.0.0.1:1500/peer1500', 'Peer', 'peer')
             self.announce()
             if test_mode == True:
+                self.test = True
                 self.monitor = host.lookup_url('http://127.0.0.1:1278/monitor', 'Monitor', 'monitor')
+            else:
+                self.test = False
             sleep(2) #wait for all peers to start
             self.get_peers()
             if type_of_peer == "sec":
@@ -125,34 +128,37 @@ class Peer(object):
             self.fight_for_power()
 
 
-    def receive(self, msg):
+    def receive(self, msg):            
         if msg[0] == self.internal_count:
             self.process_msg(msg[1])
             self.internal_count += 1
         else:
             self.buffer.append(msg)
+            #self.process_msg(msg[1]) #decoment it to test tests making it intentionally wrong
 
     def check_buffer(self):
-        for tup in self.buffer:
-            if tup[0] == self.internal_count:
-                self.process_msg(tup[1])
-                self.buffer.remove(tup)
-                self.internal_count += 1
+        if self.test == True:
+            print self.buffer
+        while len(self.buffer) > 0 and min(self.buffer)[0] == self.internal_count:
+            self.process_msg(min(self.buffer)[1])
+            self.buffer.remove(min(self.buffer))
+            self.internal_count += 1
 
     def check_bufferLamp(self):
+        if self.test == True:
+            print self.buffer
         #checking ack's
         for ack in self.ack_buffer:
             for tup in self.buffer:
                 if (tup[0][0] == ack[0] and tup[0][2] == ack[1]):
                     tup[1] += 1
+                    self.ack_buffer.remove(ack)
                     break
-            self.ack_buffer.remove(ack)
 
         #checking messages
-        if len(self.buffer) > 0:
-            if min(self.buffer)[1] == len(self.neighbors):
-                self.process_msg(min(self.buffer)[0][1])
-                self.buffer.remove(min(self.buffer))
+        while len(self.buffer) > 0 and min(self.buffer)[1] == len(self.neighbors):
+            self.process_msg(min(self.buffer)[0][1])
+            self.buffer.remove(min(self.buffer))
 
     def ack(self, msg_ack):
         self.ack_buffer.append(msg_ack)
@@ -174,7 +180,7 @@ class Peer(object):
 
     def process_msg(self,msg):
         print msg
-        if test_mode == True:
+        if self.test == True:
             self.monitor.messages_in(msg, self.my_number)
 
     def announce(self):
@@ -209,13 +215,15 @@ if __name__ == "__main__":
         exit()
     if len(sys.argv) == 2:
         type_of_peer = str(sys.argv[1])
+        test_mode = False
     if len(sys.argv) == 3:
         type_of_peer = str(sys.argv[1])
         group = str(sys.argv[2])
+        test_mode = False
     if len(sys.argv) == 4:
         type_of_peer = str(sys.argv[1])
         group = str(sys.argv[2])
-        if str(sys.argv[2]) == "t":
+        if str(sys.argv[3]) == "t":
             test_mode = True
         else:
             test_mode = False
