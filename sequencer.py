@@ -4,10 +4,7 @@
 # Version 2.0
 # Last-update 10.05.17
 
-from pyactor.context import set_context, create_host, shutdown, serve_forever, interval
-from random import randint
-import random
-import sys
+from pyactor.context import set_context, create_host, serve_forever, interval
 
 class Sequencer(object):
     _tell = ['init']

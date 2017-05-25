@@ -98,7 +98,6 @@ class Peer(object):
             lider.lider_aceptance([False, self.internal_count])
 
     def fight_for_power(self):
-        im_strongest = True
         print "showing off my power: "
         for peer in self.neighbors:
             peer.lider_proposal(self.proxy ,self.my_number)
@@ -128,7 +127,7 @@ class Peer(object):
             self.fight_for_power()
 
 
-    def receive(self, msg):            
+    def receive(self, msg):
         if msg[0] == self.internal_count:
             self.process_msg(msg[1])
             self.internal_count += 1

@@ -5,7 +5,6 @@
 # Last-check 15.03.17
 
 from pyactor.context import set_context, create_host, serve_forever, sleep, interval
-import random
 
 class Monitor(object):
     _tell = ['messages_in', 'check', 'init']
@@ -18,7 +17,7 @@ class Monitor(object):
         sleep(10) # sleep implemented in order to avoid an check when execTime=0
         self.interval1 = interval(self.host, 10, self.proxy, "check")
         self.messages = {}
-    
+
     def check(self):
         errors_found = False
         for peer1 in self.messages.keys():
@@ -30,8 +29,8 @@ class Monitor(object):
                             errors_found = True
         if errors_found == False:
             print "No errors found"
-        
-    def messages_in(self,msg, id):
+
+    def messages_in(self, msg, id):
         if not(self.messages.has_key(id)):
             self.messages[id] = []
         self.messages[id].append(msg)

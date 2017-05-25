@@ -5,7 +5,6 @@
 # Last-update 15.03.17
 
 from pyactor.context import set_context, create_host, serve_forever, sleep, interval
-import random
 
 class Tracker(object):
     _tell = ['announce', 'update', 'init']
