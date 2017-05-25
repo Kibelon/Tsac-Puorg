@@ -6,7 +6,6 @@
 
 from pyactor.context import set_context, create_host, shutdown, serve_forever, interval, sleep
 from random import randint
-import random
 import sys
 from pyactor.exceptions import TimeoutError
 
