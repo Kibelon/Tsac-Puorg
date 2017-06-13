@@ -68,7 +68,8 @@ class Peer(object):
             self.neighbors.remove(self.sequencer)
         self.sequencer = lider
         self.proposed_lider = ""
-        self.buffer =[]
+        self.victory_count = 0
+        #self.buffer =[]
         print "we have anew lider!"
         self.interval4 = interval(self.host, 4, self.proxy, "multicast") #restarting messages
 
@@ -116,7 +117,7 @@ class Peer(object):
                     print "error! Starting lider election!!"
                     self.interval4.set()#stops interval so is not called while deciding new lider
                     self.fight_for_power()
-                sleep(randint(0, 4)) #wait for all peers to start
+                sleep(randint(0, 4)) #randomize message order
                 for peer in self.neighbors:
                     peer.receive ([count, msg])
                 self.receive ([count, msg])
