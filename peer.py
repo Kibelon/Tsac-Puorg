@@ -59,13 +59,13 @@ class Peer(object):
             self.counter = 0
 
     def get_counter(self):
-        count=self.counter
+        counnt=self.counter
         self.counter += 1
-        return count
+        return counnt
 
     def lider_chosen(self, lider):
-        if self.sequencer != "":
-            self.neighbors.remove(self.sequencer)
+       # if self.sequencer != "":
+        #    self.neighbors.remove(self.sequencer)
         self.sequencer = lider
         self.proposed_lider = ""
         self.victory_count = 0
@@ -99,6 +99,7 @@ class Peer(object):
 
     def fight_for_power(self):
         print "showing off my power: "
+        self.victory_count = 0
         for peer in self.neighbors:
             peer.lider_proposal(self.proxy ,self.my_number)
 
@@ -115,6 +116,8 @@ class Peer(object):
                     count = self.sequencer.get_counter()
                 except TimeoutError, e:
                     print "error! Starting lider election!!"
+                    self.neighbors.remove(self.sequencer)
+                    self.sequencer = ""
                     self.interval4.set()#stops interval so is not called while deciding new lider
                     self.fight_for_power()
                 sleep(randint(0, 4)) #randomize message order
